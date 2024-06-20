@@ -155,7 +155,7 @@
                 <option value="鐘保柱">鐘保柱</option>
                 <option value="葉立臺">葉立臺</option>
             </select>
-            <input type="password" id="passwordInput" placeholder="輸入密碼" style="display: none; margin: 0 auto;">
+            <input type="password" id="passwordInput" placeholder="輸入密碼" style="display: none; margin: 0 auto;" inputmode="numeric">
             <button id="confirmIdentity">確認</button>
         </div>
         <div id="page2" style="display:none;">
@@ -165,7 +165,7 @@
             <div class="button-group">
                 <button id="backToIdentity">重新選擇身份</button>
                 <button id="submitDates" disabled>送出</button>
-                <button id="managerList" style="width: auto;">管理者功能</button>
+                <button id="managerList" style="width: auto;" disabled>管理者功能</button>
             </div>
             <div id="managerOptions">
                 <div id="managerActions" style="display: none;">
@@ -238,7 +238,7 @@
                     dayDiv.addEventListener('click', () => selectDate(i));
                     calendar.appendChild(dayDiv);
                 }
-                updateCalendar();
+                fetchVacationData();
             }
 
             // 選擇日期
@@ -296,13 +296,6 @@
                 submitDatesButton.disabled = selectedDates.length < 1;
             }
 
-            // 清除舊日期
-            function clearOldDates() {
-                for (const day in employeesPerDay) {
-                    employeesPerDay[day] = employeesPerDay[day].filter(employee => employee !== selectedEmployee);
-                }
-            }
-
             // 確認身份
             confirmIdentityButton.addEventListener('click', () => {
                 selectedEmployee = employeeSelect.value;
@@ -333,6 +326,7 @@
                 page1.style.display = 'none';
                 page2.style.display = 'block';
                 managerOptions.style.display = isManager ? 'flex' : 'none';
+                managerListButton.disabled = !isManager;
                 fetchVacationData();
             });
 
@@ -354,13 +348,6 @@
                 if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}，是否確定？`)) {
                     return;
                 }
-                clearOldDates();
-                selectedDates.forEach(day => {
-                    if (!employeesPerDay[day]) {
-                        employeesPerDay[day] = [];
-                    }
-                    employeesPerDay[day].push(selectedEmployee);
-                });
                 saveVacationData();
             });
 
@@ -389,16 +376,14 @@
                 db.collection('vacations').get().then((querySnapshot) => {
                     querySnapshot.forEach((doc) => {
                         const data = doc.data();
-                        data.dates.forEach(date => {
-                            if (!statistics[date]) {
-                                statistics[date] = [];
-                            }
-                            statistics[date].push(data.employee);
-                        });
+                        if (!statistics[data.employee]) {
+                            statistics[data.employee] = [];
+                        }
+                        statistics[data.employee] = statistics[data.employee].concat(data.dates);
                     });
                     let statsString = '';
-                    for (const date in statistics) {
-                        statsString += `${date}: ${statistics[date].join(', ')}\n`;
+                    for (const employee in statistics) {
+                        statsString += `${employee}: ${statistics[employee].join(', ')}\n`;
                     }
                     alert(statsString.trim());
                 });
@@ -423,24 +408,36 @@
 
             // 保存休假數據
             function saveVacationData() {
-                const data = {
-                    employee: selectedEmployee,
-                    dates: selectedDates
-                };
-                db.collection('vacations').add(data)
-                .then(() => {
-                    alert('指定休假已更新完成。');
-                    selectedDates = [];
-                    updateCalendar();
-                    updateSelectedDates();
-                    toggleSubmitButton();
-                    page2.style.display = 'none';
-                    page1.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to register vacation dates.');
-                });
+                db.collection('vacations')
+                    .where('employee', '==', selectedEmployee)
+                    .get()
+                    .then((querySnapshot) => {
+                        const batch = db.batch();
+                        querySnapshot.forEach((doc) => {
+                            batch.delete(doc.ref);
+                        });
+                        return batch.commit();
+                    })
+                    .then(() => {
+                        const data = {
+                            employee: selectedEmployee,
+                            dates: selectedDates
+                        };
+                        return db.collection('vacations').add(data);
+                    })
+                    .then(() => {
+                        alert('指定休假已更新完成。');
+                        selectedDates = [];
+                        fetchVacationData();
+                        updateSelectedDates();
+                        toggleSubmitButton();
+                        page2.style.display = 'none';
+                        page1.style.display = 'block';
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                        alert('Failed to register vacation dates.');
+                    });
             }
 
             renderCalendar();
