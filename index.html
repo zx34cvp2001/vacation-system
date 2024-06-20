@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安橋保全_大巨蛋_八月份指定休假系統</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', sans-serif;
+            background-color: #fff5e6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            background-color: #fff0d9;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            overflow: auto;
+            max-height: 90vh;
+        }
+        h1, h2 {
+            color: #8b4513;
+            margin-bottom: 20px;
+        }
+        select, button, input {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        button {
+            cursor: pointer;
+            background-color: #ffb347;
+            color: #8b4513;
+            border: none;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 3.2px #d97e00;
+        }
+        button:disabled {
+            background-color: #d3d3d3;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        button:hover {
+            background-color: #ff9e21;
+        }
+        button:active {
+            transform: translateY(3.2px);
+            box-shadow: 0 1.6px #d97e00;
+        }
+        #calendar {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .day {
+            padding: 49.5px 27px;
+            background-color: #ffe4b5;
+            border-radius: 10px;
+            cursor: pointer;
+            position: relative;
+            transition: background-color 0.3s;
+        }
+        .day:hover {
+            background-color: #ffd27f;
+        }
+        .selected {
+            background-color: #ffa07a !important;
+        }
+        .full {
+            background-color: #d3d3d3;
+            cursor: not-allowed;
+        }
+        .day-number {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-weight: bold;
+            font-size: 1.5em;
+            color: #8b4513;
+        }
+        .employee-list {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 5px;
+            font-size: 10px;
+            color: #333;
+            max-height: 60%;
+            overflow-y: auto;
+        }
+        #selectedDates {
+            margin-bottom: 20px;
+            color: #8b4513;
+        }
+        #managerOptions {
+            display: none;
+            flex-direction: column;
+        }
+        #managerOptions button {
+            margin-top: 10px;
+        }
+        .dialog {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            text-align: left;
+            display: none;
+        }
+        .button-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>安橋保全_大巨蛋_八月份指定休假系統</h1>
+        <div id="page1">
+            <h2>選擇身份</h2>
+            <select id="employeeSelect">
+                <option value="">請選擇您的姓名</option>
+                <option value="陳學正">陳學正</option>
+                <option value="吳昆益">吳昆益</option>
+                <option value="談正康">談正康</option>
+                <option value="劉益誠">劉益誠</option>
+                <option value="洪一倫">洪一倫</option>
+                <option value="施增達">施增達</option>
+                <option value="蔡銘南">蔡銘南</option>
+                <option value="黃宇睿">黃宇睿</option>
+                <option value="彭萬倉">彭萬倉</option>
+                <option value="王淨月">王淨月</option>
+                <option value="王瑞祥">王瑞祥</option>
+                <option value="林祐弘">林祐弘</option>
+                <option value="張維賢">張維賢</option>
+                <option value="張能凱">張能凱</option>
+                <option value="張宇賢">張宇賢</option>
+                <option value="寇鴻儒">寇鴻儒</option>
+                <option value="林峻源">林峻源</option>
+                <option value="劉鐘泉">劉鐘泉</option>
+                <option value="林雅君">林雅君</option>
+                <option value="鐘保柱">鐘保柱</option>
+                <option value="葉立臺">葉立臺</option>
+            </select>
+            <input type="password" id="passwordInput" placeholder="輸入密碼" style="display: none; margin: 0 auto;">
+            <button id="confirmIdentity">確認</button>
+        </div>
+        <div id="page2" style="display:none;">
+            <h2>選擇休假日期</h2>
+            <div id="calendar"></div>
+            <div id="selectedDates"></div>
+            <div class="button-group">
+                <button id="backToIdentity">重新選擇身份</button>
+                <button id="submitDates" disabled>送出</button>
+                <button id="managerList" style="width: auto;">管理者功能</button>
+            </div>
+            <div id="managerOptions">
+                <div id="managerActions" style="display: none;">
+                    <button id="clearAllData">清除員工指休資料</button>
+                    <button id="showStatistics">統計</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <!-- Add Firebase products that you want to use -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <script>
+        // Firebase 配置
+        const firebaseConfig = {
+            apiKey: "AIzaSyC41oZEylj4tzNUR9boZlaeAzyzxnt4NZU",
+            authDomain: "rock-idiom-408312.firebaseapp.com",
+            databaseURL: "https://rock-idiom-408312-default-rtdb.firebaseio.com",
+            projectId: "rock-idiom-408312",
+            storageBucket: "rock-idiom-408312.appspot.com",
+            messagingSenderId: "405862843184",
+            appId: "1:405862843184:web:ef25b5c535f6cb94da7ef5"
+        };
+
+        // 初始化 Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const employeeSelect = document.getElementById('employeeSelect');
+            const confirmIdentityButton = document.getElementById('confirmIdentity');
+            const backToIdentityButton = document.getElementById('backToIdentity');
+            const submitDatesButton = document.getElementById('submitDates');
+            const page1 = document.getElementById('page1');
+            const page2 = document.getElementById('page2');
+            const calendar = document.getElementById('calendar');
+            const selectedDatesDiv = document.getElementById('selectedDates');
+            const passwordInput = document.getElementById('passwordInput');
+            const managerOptions = document.getElementById('managerOptions');
+            const managerListButton = document.getElementById('managerList');
+            const managerActions = document.getElementById('managerActions');
+            const clearAllDataButton = document.getElementById('clearAllData');
+            connst showStatisticsButton = document.getElementById('showStatistics');
+
+            let selectedEmployee = '';
+            let selectedDates = [];
+            const maxDaysEmployee = 3;
+            const maxDaysManager = 10;
+            const maxEmployeesPerDay = 4;
+            const employeesPerDay = {};
+            const managers = ['陳學正', '吳昆益'];
+            const managerPassword = '6233';
+            let isManager = false;
+
+            function renderCalendar() {
+                for (let i = 1; i <= 31; i++) {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.classList.add('day');
+
+                    const dayNumber = document.createElement('div');
+                    dayNumber.classList.add('day-number');
+                    dayNumber.innerText = i;
+                    dayDiv.appendChild(dayNumber);
+
+                    const employeeList = document.createElement('div');
+                    employeeList.classList.add('employee-list');
+                    dayDiv.appendChild(employeeList);
+
+                    dayDiv.addEventListener('click', () => selectDate(i));
+                    calendar.appendChild(dayDiv);
+                }
+            }
+
+            function selectDate(day) {
+                const maxDays = isManager ? maxDaysManager : maxDaysEmployee;
+                if (selectedDates.includes(day)) {
+                    selectedDates = selectedDates.filter(d => d !== day);
+                } else {
+                    if (selectedDates.length >= maxDays) {
+                        alert(`每月指定休假日以${maxDays}日為限。`);
+                        return;
+                    }
+                    if (employeesPerDay[day] && employeesPerDay[day].length >= maxEmployeesPerDay) {
+                        alert('此日期的休假人數已滿。');
+                        return;
+                    }
+                    selectedDates.push(day);
+                }
+                updateCalendar();
+                updateSelectedDates();
+                toggleSubmitButton();
+            }
+
+            function updateCalendar() {
+                const days = calendar.querySelectorAll('.day');
+                days.forEach(dayDiv => {
+                    const day = parseInt(dayDiv.querySelector('.day-number').innerText);
+                    dayDiv.classList.remove('selected', 'full');
+                    const employeeList = dayDiv.querySelector('.employee-list');
+                    employeeList.innerHTML = '';
+                    if (selectedDates.includes(day)) {
+                        dayDiv.classList.add('selected');
+                    }
+                    if (employeesPerDay[day]) {
+                        employeesPerDay[day].forEach(employee => {
+                            const employeeName = document.createElement('div');
+                            employeeName.innerText = employee;
+                            employeeList.appendChild(employeeName);
+                        });
+                        if (employeesPerDay[day].length >= maxEmployeesPerDay) {
+                            dayDiv.classList.add('full');
+                        }
+                    }
+                });
+            }
+
+            function updateSelectedDates() {
+                selectedDatesDiv.innerHTML = '已選日期: ' + selectedDates.join(', ');
+            }
+
+            function toggleSubmitButton() {
+                submitDatesButton.disabled = selectedDates.length < 1;
+            }
+
+            function clearOldDates() {
+                for (const day in employeesPerDay) {
+                    employeesPerDay[day] = employeesPerDay[day].filter(employee => employee !== selectedEmployee);
+                }
+            }
+
+            confirmIdentityButton.addEventListener('click', () => {
+                selectedEmployee = employeeSelect.value;
+                if (!selectedEmployee) {
+                    alert('請選擇您的姓名。');
+                    return;
+                }
+                if (managers.includes(selectedEmployee)) {
+                    passwordInput.style.display = 'block';
+                    passwordInput.focus();
+                    if (!passwordInput.value) {
+                        alert('請輸入密碼。');
+                        return;
+                    }
+                    if (passwordInput.value !== managerPassword) {
+                        alert('密碼錯誤。');
+                        return;
+                    }
+                    isManager = true;
+                } else {
+                    isManager = false;
+                }
+                if (!confirm(`您選擇的身份是 ${selectedEmployee}，是否確認？`)) {
+                    return;
+                }
+                passwordInput.style.display = 'none';
+                passwordInput.value = '';
+                page1.style.display = 'none';
+                page2.style.display = 'block';
+                managerOptions.style.display = isManager ? 'flex' : 'none';
+            });
+
+            backToIdentityButton.addEventListener('click', () => {
+                if (!confirm('是否重新選擇身份？此操作將清除目前選擇的日期。')) {
+                    return;
+                }
+                selectedDates = [];
+                updateCalendar();
+                updateSelectedDates();
+                toggleSubmitButton();
+                page2.style.display = 'none';
+                page1.style.display = 'block';
+            });
+
+            submitDatesButton.addEventListener('click', () => {
+                if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}，是否確定？`)) {
+                    return;
+                }
+                const data = {
+                    employee: selectedEmployee,
+                    dates: selectedDates
+                };
+                
+                // 將數據寫入Firebase Realtime Database
+                database.ref('vacations').push(data)
+                .then(() => {
+                    alert('指定休假已更新完成。');
+                    selectedDates = [];
+                    updateCalendar();
+                    updateSelectedDates();
+                    toggleSubmitButton();
+                    page2.style.display = 'none';
+                    page1.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to register vacation dates.');
+                });
+            });
+
+            managerListButton.addEventListener('click', () => {
+                managerActions.style.display = managerActions.style.display === 'none' ? 'block' : 'none';
+            });
+
+            clearAllDataButton.addEventListener('click', () => {
+                if (confirm('是否確認清除本月份全體員工的指休紀錄？')) {
+                    for (const day in employeesPerDay) {
+                        delete employeesPerDay[day];
+                    }
+                    alert('全體員工的指休紀錄已清除。');
+                    updateCalendar();
+                }
+            });
+
+            showStatisticsButton.addEventListener('click', () => {
+                const statistics = {};
+                for (const day in employeesPerDay) {
+                    employeesPerDay[day].forEach(employee => {
+                        if (!statistics[employee]) {
+                            statistics[employee] = [];
+                        }
+                        statistics[employee].push(day);
+                    });
+                }
+                let statsString = '';
+                for (const employee in statistics) {
+                    statsString += `${employee}: ${statistics[employee].join(', ')}\n`;
+                }
+                alert(statsString.trim());
+            });
+
+            renderCalendar();
+        });
+    </script>
+</body>
+</html>
