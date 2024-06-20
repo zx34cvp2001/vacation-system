@@ -177,8 +177,8 @@
     </div>
 
     <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
     <script>
         // Firebase 配置
         const firebaseConfig = {
@@ -207,7 +207,7 @@
             const managerOptions = document.getElementById('managerOptions');
             const managerListButton = document.getElementById('managerList');
             const managerActions = document.getElementById('managerActions');
-            const clearAllDataButton = document.getElementById('clearAllData');
+            connst clearAllDataButton = document.getElementById('clearAllData');
             const showStatisticsButton = document.getElementById('showStatistics');
 
             let selectedEmployee = '';
@@ -347,7 +347,7 @@
                     employee: selectedEmployee,
                     dates: selectedDates
                 };
-                
+
                 // 將數據寫入Firestore
                 db.collection('vacations').add(data)
                 .then(() => {
