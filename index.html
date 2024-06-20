@@ -179,13 +179,12 @@
     <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
     <!-- Add Firebase products that you want to use -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
     <script>
         // Firebase 配置
         const firebaseConfig = {
             apiKey: "AIzaSyC41oZEylj4tzNUR9boZlaeAzyzxnt4NZU",
             authDomain: "rock-idiom-408312.firebaseapp.com",
-            databaseURL: "https://rock-idiom-408312-default-rtdb.firebaseio.com",
             projectId: "rock-idiom-408312",
             storageBucket: "rock-idiom-408312.appspot.com",
             messagingSenderId: "405862843184",
@@ -194,7 +193,7 @@
 
         // 初始化 Firebase
         const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        const db = firebase.firestore();
 
         document.addEventListener('DOMContentLoaded', function() {
             const employeeSelect = document.getElementById('employeeSelect');
@@ -210,7 +209,7 @@
             const managerListButton = document.getElementById('managerList');
             const managerActions = document.getElementById('managerActions');
             const clearAllDataButton = document.getElementById('clearAllData');
-            connst showStatisticsButton = document.getElementById('showStatistics');
+            const showStatisticsButton = document.getElementById('showStatistics');
 
             let selectedEmployee = '';
             let selectedDates = [];
@@ -350,8 +349,8 @@
                     dates: selectedDates
                 };
                 
-                // 將數據寫入Firebase Realtime Database
-                database.ref('vacations').push(data)
+                // 將數據寫入Firestore
+                db.collection('vacations').add(data)
                 .then(() => {
                     alert('指定休假已更新完成。');
                     selectedDates = [];
@@ -373,29 +372,34 @@
 
             clearAllDataButton.addEventListener('click', () => {
                 if (confirm('是否確認清除本月份全體員工的指休紀錄？')) {
-                    for (const day in employeesPerDay) {
-                        delete employeesPerDay[day];
-                    }
-                    alert('全體員工的指休紀錄已清除。');
-                    updateCalendar();
+                    db.collection('vacations').get().then((querySnapshot) => {
+                        querySnapshot.forEach((doc) => {
+                            doc.ref.delete();
+                        });
+                        alert('全體員工的指休紀錄已清除。');
+                        updateCalendar();
+                    });
                 }
             });
 
             showStatisticsButton.addEventListener('click', () => {
                 const statistics = {};
-                for (const day in employeesPerDay) {
-                    employeesPerDay[day].forEach(employee => {
-                        if (!statistics[employee]) {
-                            statistics[employee] = [];
-                        }
-                        statistics[employee].push(day);
+                db.collection('vacations').get().then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        data.dates.forEach(date => {
+                            if (!statistics[date]) {
+                                statistics[date] = [];
+                            }
+                            statistics[date].push(data.employee);
+                        });
                     });
-                }
-                let statsString = '';
-                for (const employee in statistics) {
-                    statsString += `${employee}: ${statistics[employee].join(', ')}\n`;
-                }
-                alert(statsString.trim());
+                    let statsString = '';
+                    for (const date in statistics) {
+                        statsString += `${date}: ${statistics[date].join(', ')}\n`;
+                    }
+                    alert(statsString.trim());
+                });
             });
 
             renderCalendar();
