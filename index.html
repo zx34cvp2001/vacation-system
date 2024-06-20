@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>安橋保全_大巨蛋_八月份指定休假系統</title>
+    <title>安橋保全_大巨蛋_七月份指定休假系統</title>
     <style>
         body {
             font-family: 'Microsoft JhengHei', sans-serif;
@@ -128,7 +128,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>安橋保全_大巨蛋_八月份指定休假系統</h1>
+        <h1>安橋保全_大巨蛋_七月份指定休假系統</h1>
         <div id="page1">
             <h2>選擇身份</h2>
             <select id="employeeSelect">
@@ -212,14 +212,15 @@
 
             let selectedEmployee = '';
             let selectedDates = [];
+            let employeesPerDay = {};
             const maxDaysEmployee = 3;
             const maxDaysManager = 10;
             const maxEmployeesPerDay = 4;
-            const employeesPerDay = {};
             const managers = ['陳學正', '吳昆益'];
             const managerPassword = '6233';
             let isManager = false;
 
+            // 初始化日曆
             function renderCalendar() {
                 for (let i = 1; i <= 31; i++) {
                     const dayDiv = document.createElement('div');
@@ -237,8 +238,10 @@
                     dayDiv.addEventListener('click', () => selectDate(i));
                     calendar.appendChild(dayDiv);
                 }
+                updateCalendar();
             }
 
+            // 選擇日期
             function selectDate(day) {
                 const maxDays = isManager ? maxDaysManager : maxDaysEmployee;
                 if (selectedDates.includes(day)) {
@@ -249,7 +252,7 @@
                         return;
                     }
                     if (employeesPerDay[day] && employeesPerDay[day].length >= maxEmployeesPerDay) {
-                        alert('此日期的休假人數已滿。');
+                        alert(`${day}已達休假人數上限`);
                         return;
                     }
                     selectedDates.push(day);
@@ -259,6 +262,7 @@
                 toggleSubmitButton();
             }
 
+            // 更新日曆顯示
             function updateCalendar() {
                 const days = calendar.querySelectorAll('.day');
                 days.forEach(dayDiv => {
@@ -282,20 +286,24 @@
                 });
             }
 
+            // 更新已選擇日期顯示
             function updateSelectedDates() {
                 selectedDatesDiv.innerHTML = '已選日期: ' + selectedDates.join(', ');
             }
 
+            // 切換送出按鈕狀態
             function toggleSubmitButton() {
                 submitDatesButton.disabled = selectedDates.length < 1;
             }
 
+            // 清除舊日期
             function clearOldDates() {
                 for (const day in employeesPerDay) {
                     employeesPerDay[day] = employeesPerDay[day].filter(employee => employee !== selectedEmployee);
                 }
             }
 
+            // 確認身份
             confirmIdentityButton.addEventListener('click', () => {
                 selectedEmployee = employeeSelect.value;
                 if (!selectedEmployee) {
@@ -325,8 +333,10 @@
                 page1.style.display = 'none';
                 page2.style.display = 'block';
                 managerOptions.style.display = isManager ? 'flex' : 'none';
+                fetchVacationData();
             });
 
+            // 返回身份選擇頁面
             backToIdentityButton.addEventListener('click', () => {
                 if (!confirm('是否重新選擇身份？此操作將清除目前選擇的日期。')) {
                     return;
@@ -339,36 +349,27 @@
                 page1.style.display = 'block';
             });
 
+            // 送出休假日期
             submitDatesButton.addEventListener('click', () => {
                 if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}，是否確定？`)) {
                     return;
                 }
-                const data = {
-                    employee: selectedEmployee,
-                    dates: selectedDates
-                };
-
-                // 將數據寫入Firestore
-                db.collection('vacations').add(data)
-                .then(() => {
-                    alert('指定休假已更新完成。');
-                    selectedDates = [];
-                    updateCalendar();
-                    updateSelectedDates();
-                    toggleSubmitButton();
-                    page2.style.display = 'none';
-                    page1.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Failed to register vacation dates.');
+                clearOldDates();
+                selectedDates.forEach(day => {
+                    if (!employeesPerDay[day]) {
+                        employeesPerDay[day] = [];
+                    }
+                    employeesPerDay[day].push(selectedEmployee);
                 });
+                saveVacationData();
             });
 
+            // 管理者功能顯示
             managerListButton.addEventListener('click', () => {
                 managerActions.style.display = managerActions.style.display === 'none' ? 'block' : 'none';
             });
 
+            // 清除所有員工的休假記錄
             clearAllDataButton.addEventListener('click', () => {
                 if (confirm('是否確認清除本月份全體員工的指休紀錄？')) {
                     db.collection('vacations').get().then((querySnapshot) => {
@@ -376,11 +377,13 @@
                             doc.ref.delete();
                         });
                         alert('全體員工的指休紀錄已清除。');
+                        employeesPerDay = {};
                         updateCalendar();
                     });
                 }
             });
 
+            // 顯示統計
             showStatisticsButton.addEventListener('click', () => {
                 const statistics = {};
                 db.collection('vacations').get().then((querySnapshot) => {
@@ -400,6 +403,45 @@
                     alert(statsString.trim());
                 });
             });
+
+            // 獲取休假數據
+            function fetchVacationData() {
+                db.collection('vacations').get().then((querySnapshot) => {
+                    employeesPerDay = {};
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        data.dates.forEach(date => {
+                            if (!employeesPerDay[date]) {
+                                employeesPerDay[date] = [];
+                            }
+                            employeesPerDay[date].push(data.employee);
+                        });
+                    });
+                    updateCalendar();
+                });
+            }
+
+            // 保存休假數據
+            function saveVacationData() {
+                const data = {
+                    employee: selectedEmployee,
+                    dates: selectedDates
+                };
+                db.collection('vacations').add(data)
+                .then(() => {
+                    alert('指定休假已更新完成。');
+                    selectedDates = [];
+                    updateCalendar();
+                    updateSelectedDates();
+                    toggleSubmitButton();
+                    page2.style.display = 'none';
+                    page1.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to register vacation dates.');
+                });
+            }
 
             renderCalendar();
         });
