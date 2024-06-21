@@ -133,7 +133,27 @@
             <h2>選擇身份</h2>
             <select id="employeeSelect">
                 <option value="">請選擇您的姓名</option>
-                <!-- 選項內容省略 -->
+                <option value="陳學正">陳學正</option>
+                <option value="吳昆益">吳昆益</option>
+                <option value="談正康">談正康</option>
+                <option value="劉益誠">劉益誠</option>
+                <option value="洪一倫">洪一倫</option>
+                <option value="施增達">施增達</option>
+                <option value="蔡銘南">蔡銘南</option>
+                <option value="黃宇睿">黃宇睿</option>
+                <option value="彭萬倉">彭萬倉</option>
+                <option value="王淨月">王淨月</option>
+                <option value="王瑞祥">王瑞祥</option>
+                <option value="林祐弘">林祐弘</option>
+                <option value="張維賢">張維賢</option>
+                <option value="張能凱">張能凱</option>
+                <option value="張宇賢">張宇賢</option>
+                <option value="寇鴻儒">寇鴻儒</option>
+                <option value="林峻源">林峻源</option>
+                <option value="劉鐘泉">劉鐘泉</option>
+                <option value="林雅君">林雅君</option>
+                <option value="鐘保柱">鐘保柱</option>
+                <option value="葉立臺">葉立臺</option>
             </select>
             <input type="password" id="passwordInput" placeholder="輸入密碼" style="display: none; margin: 0 auto;" inputmode="numeric">
             <button id="confirmIdentity">確認</button>
@@ -322,7 +342,6 @@
                 page2.style.display = 'block';
                 managerOptions.style.display = isManager ? 'flex' : 'none';
                 managerListButton.disabled = !isManager;
-                fetchVacationData();
             });
 
             backToIdentityButton.addEventListener('click', () => {
