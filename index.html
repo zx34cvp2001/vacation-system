@@ -171,6 +171,10 @@
                 <div id="managerActions" style="display: none;">
                     <button id="clearAllData">清除員工指休資料</button>
                     <button id="showStatistics">統計</button>
+                    <button id="limit2">限休2人</button>
+                    <button id="limit3">限休3人</button>
+                    <button id="limit4">限休4人</button>
+                    <button id="limit5">限休5人</button>
                 </div>
             </div>
         </div>
@@ -179,6 +183,7 @@
     <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
     <script>
         // Firebase 配置
         const firebaseConfig = {
@@ -187,12 +192,14 @@
             projectId: "rock-idiom-408312",
             storageBucket: "rock-idiom-408312.appspot.com",
             messagingSenderId: "405862843184",
-            appId: "1:405862843184:web:ef25b5c535f6cb94da7ef5"
+            appId: "1:405862843184:web:ef25b5c535f6cb94da7ef5",
+            databaseURL: "https://rock-idiom-408312-default-rtdb.firebaseio.com/"
         };
 
         // 初始化 Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const realTimeDB = firebase.database();
 
         document.addEventListener('DOMContentLoaded', function() {
             const employeeSelect = document.getElementById('employeeSelect');
@@ -209,18 +216,21 @@
             const managerActions = document.getElementById('managerActions');
             const clearAllDataButton = document.getElementById('clearAllData');
             const showStatisticsButton = document.getElementById('showStatistics');
+            const limit2Button = document.getElementById('limit2');
+            const limit3Button = document.getElementById('limit3');
+            const limit4Button = document.getElementById('limit4');
+            const limit5Button = document.getElementById('limit5');
 
             let selectedEmployee = '';
             let selectedDates = [];
             let employeesPerDay = {};
+            let maxEmployeesPerDay = 4;
             const maxDaysEmployee = 3;
             const maxDaysManager = 10;
-            const maxEmployeesPerDay = 4;
             const managers = ['陳學正', '吳昆益'];
             const managerPassword = '6233';
             let isManager = false;
 
-            // 初始化日曆
             function renderCalendar() {
                 for (let i = 1; i <= 31; i++) {
                     const dayDiv = document.createElement('div');
@@ -241,7 +251,6 @@
                 fetchVacationData();
             }
 
-            // 選擇日期
             function selectDate(day) {
                 const maxDays = isManager ? maxDaysManager : maxDaysEmployee;
                 if (selectedDates.includes(day)) {
@@ -262,7 +271,6 @@
                 toggleSubmitButton();
             }
 
-            // 更新日曆顯示
             function updateCalendar() {
                 const days = calendar.querySelectorAll('.day');
                 days.forEach(dayDiv => {
@@ -286,17 +294,20 @@
                 });
             }
 
-            // 更新已選擇日期顯示
             function updateSelectedDates() {
                 selectedDatesDiv.innerHTML = '已選日期: ' + selectedDates.join(', ');
             }
 
-            // 切換送出按鈕狀態
             function toggleSubmitButton() {
                 submitDatesButton.disabled = selectedDates.length < 1;
             }
 
-            // 確認身份
+            function clearOldDates() {
+                for (const day in employeesPerDay) {
+                    employeesPerDay[day] = employeesPerDay[day].filter(employee => employee !== selectedEmployee);
+                }
+            }
+
             confirmIdentityButton.addEventListener('click', () => {
                 selectedEmployee = employeeSelect.value;
                 if (!selectedEmployee) {
@@ -330,7 +341,6 @@
                 fetchVacationData();
             });
 
-            // 返回身份選擇頁面
             backToIdentityButton.addEventListener('click', () => {
                 if (!confirm('是否重新選擇身份？此操作將不保留目前選擇的日期。')) {
                     return;
@@ -343,7 +353,6 @@
                 page1.style.display = 'block';
             });
 
-            // 送出休假日期
             submitDatesButton.addEventListener('click', () => {
                 if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}，是否確定？`)) {
                     return;
@@ -351,12 +360,10 @@
                 saveVacationData();
             });
 
-            // 管理者功能顯示
             managerListButton.addEventListener('click', () => {
                 managerActions.style.display = managerActions.style.display === 'none' ? 'block' : 'none';
             });
 
-            // 清除所有員工的休假記錄
             clearAllDataButton.addEventListener('click', () => {
                 if (confirm('是否確認清除本月份全體員工的指休紀錄？')) {
                     db.collection('vacations').get().then((querySnapshot) => {
@@ -370,7 +377,6 @@
                 }
             });
 
-            // 顯示統計
             showStatisticsButton.addEventListener('click', () => {
                 const statistics = {};
                 db.collection('vacations').get().then((querySnapshot) => {
@@ -389,7 +395,25 @@
                 });
             });
 
-            // 獲取休假數據
+            limit2Button.addEventListener('click', () => setLimit(2));
+            limit3Button.addEventListener('click', () => setLimit(3));
+            limit4Button.addEventListener('click', () => setLimit(4));
+            limit5Button.addEventListener('click', () => setLimit(5));
+
+            function setLimit(limit) {
+                if (confirm(`此操作將清除所有員工休假紀錄，是否確定將每日休假人數限制為${limit}人？`)) {
+                    db.collection('vacations').get().then((querySnapshot) => {
+                        querySnapshot.forEach((doc) => {
+                            doc.ref.delete();
+                        });
+                        maxEmployeesPerDay = limit;
+                        alert(`每日休假人數已限制為${limit}人`);
+                        employeesPerDay = {};
+                        updateCalendar();
+                    });
+                }
+            }
+
             function fetchVacationData() {
                 db.collection('vacations').get().then((querySnapshot) => {
                     employeesPerDay = {};
@@ -404,40 +428,30 @@
                     });
                     updateCalendar();
                 });
+                realTimeDB.ref('vacations').on('value', (snapshot) => {
+                    employeesPerDay = snapshot.val() || {};
+                    updateCalendar();
+                });
             }
 
-            // 保存休假數據
             function saveVacationData() {
-                db.collection('vacations')
-                    .where('employee', '==', selectedEmployee)
-                    .get()
-                    .then((querySnapshot) => {
-                        const batch = db.batch();
-                        querySnapshot.forEach((doc) => {
-                            batch.delete(doc.ref);
-                        });
-                        return batch.commit();
-                    })
-                    .then(() => {
-                        const data = {
-                            employee: selectedEmployee,
-                            dates: selectedDates
-                        };
-                        return db.collection('vacations').add(data);
-                    })
-                    .then(() => {
-                        alert('指定休假已更新完成。');
-                        selectedDates = [];
-                        fetchVacationData();
-                        updateSelectedDates();
-                        toggleSubmitButton();
-                        page2.style.display = 'none';
-                        page1.style.display = 'block';
-                    })
-                    .catch((error) => {
-                        console.error('Error:', error);
-                        alert('Failed to register vacation dates.');
-                    });
+                const data = {
+                    employee: selectedEmployee,
+                    dates: selectedDates
+                };
+                db.collection('vacations').add(data).then(() => {
+                    realTimeDB.ref('vacations').set(employeesPerDay);
+                    alert('指定休假已更新完成。');
+                    selectedDates = [];
+                    fetchVacationData();
+                    updateSelectedDates();
+                    toggleSubmitButton();
+                    page2.style.display = 'none';
+                    page1.style.display = 'block';
+                }).catch((error) => {
+                    console.error('Error:', error);
+                    alert('Failed to register vacation dates.');
+                });
             }
 
             renderCalendar();
