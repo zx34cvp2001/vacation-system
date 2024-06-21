@@ -454,6 +454,282 @@
 
                 // 更新新日期
                 selectedDates.forEach(day => {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            const page1 = document.getElementById('page1');
+            const page2 = document.getElementById('page2');
+            const calendar = document.getElementById('calendar');
+            const selectedDatesDiv = document.getElementById('selectedDates');
+            const passwordInput = document.getElementById('passwordInput');
+            const managerOptions = document.getElementById('managerOptions');
+            const managerListButton = document.getElementById('managerList');
+            const managerActions = document.getElementById('managerActions');
+            const clearAllDataButton = document.getElementById('clearAllData');
+            const showStatisticsButton = document.getElementById('showStatistics');
+            const limit2Button = document.getElementById('limit2');
+            const limit3Button = document.getElementById('limit3');
+            const limit4Button = document.getElementById('limit4');
+            const limit5Button = document.getElementById('limit5');
+
+            let selectedEmployee = '';
+            let selectedDates = [];
+            let employeesPerDay = {};
+            let maxEmployeesPerDay = 4;
+            const maxDaysEmployee = 3;
+            const maxDaysManager = 10;
+            const managers = ['陳學正', '吳昆益'];
+            const managerPassword = '6233';
+            let isManager = false;
+
+            // 初始化日曆
+            function renderCalendar() {
+                for (let i = 1; i <= 31; i++) {
+                    const dayDiv = document.createElement('div');
+                    dayDiv.classList.add('day');
+
+                    const dayNumber = document.createElement('div');
+                    dayNumber.classList.add('day-number');
+                    dayNumber.innerText = i;
+                    dayDiv.appendChild(dayNumber);
+
+                    const employeeList = document.createElement('div');
+                    employeeList.classList.add('employee-list');
+                    dayDiv.appendChild(employeeList);
+
+                    dayDiv.addEventListener('click', () => selectDate(i));
+                    calendar.appendChild(dayDiv);
+                }
+                // 設置實時數據監聽
+                realTimeDB.ref('vacations').on('value', (snapshot) => {
+                    employeesPerDay = snapshot.val() || {};
+                    updateCalendar();
+                });
+            }
+
+            // 選擇日期
+            function selectDate(day) {
+                const maxDays = isManager ? maxDaysManager : maxDaysEmployee;
+                if (selectedDates.includes(day)) {
+                    selectedDates = selectedDates.filter(d => d !== day);
+                } else {
+                    if (selectedDates.length >= maxDays) {
+                        alert(`每月指定休假日以${maxDays}日為限。`);
+                        return;
+                    }
+                    if (employeesPerDay[day] && employeesPerDay[day].length >= maxEmployeesPerDay) {
+                        alert(`${day}已達休假人數上限`);
+                        return;
+                    }
+                    selectedDates.push(day);
+                }
+                updateCalendar();
+                updateSelectedDates();
+                toggleSubmitButton();
+            }
+
+            // 更新日曆顯示
+            function updateCalendar() {
+                const days = calendar.querySelectorAll('.day');
+                days.forEach(dayDiv => {
+                    const day = parseInt(dayDiv.querySelector('.day-number').innerText);
+                    dayDiv.classList.remove('selected', 'full');
+                    const employeeList = dayDiv.querySelector('.employee-list');
+                    employeeList.innerHTML = '';
+                    if (selectedDates.includes(day)) {
+                        dayDiv.classList.add('selected');
+                    }
+                    if (employeesPerDay[day]) {
+                        employeesPerDay[day].forEach(employee => {
+                            const employeeName = document.createElement('div');
+                            employeeName.innerText = employee;
+                            employeeList.appendChild(employeeName);
+                        });
+                        if (employeesPerDay[day].length >= maxEmployeesPerDay) {
+                            dayDiv.classList.add('full');
+                        }
+                    }
+                });
+            }
+
+            // 更新已選擇日期顯示
+            function updateSelectedDates() {
+                selectedDatesDiv.innerHTML = '已選日期: ' + selectedDates.join(', ');
+            }
+
+            // 切換送出按鈕狀態
+            function toggleSubmitButton() {
+                submitDatesButton.disabled = selectedDates.length < 1;
+            }
+
+            // 清除舊日期
+            function clearOldDates() {
+                for (const day in employeesPerDay) {
+                    employeesPerDay[day] = employeesPerDay[day].filter(employee => employee !== selectedEmployee);
+                }
+            }
+
+            // 確認身份
+            confirmIdentityButton.addEventListener('click', () => {
+                selectedEmployee = employeeSelect.value;
+                if (!selectedEmployee) {
+                    alert('請選擇您的姓名。');
+                    return;
+                }
+                if (managers.includes(selectedEmployee)) {
+                    passwordInput.style.display = 'block';
+                    passwordInput.focus();
+                    if (!passwordInput.value) {
+                        alert('請輸入密碼。');
+                        return;
+                    }
+                    if (passwordInput.value !== managerPassword) {
+                        alert('密碼錯誤。');
+                        return;
+                    }
+                    isManager = true;
+                } else {
+                    isManager = false;
+                }
+                if (!confirm(`您選擇的身份是 ${selectedEmployee}，是否確認？`)) {
+                    return;
+                }
+                passwordInput.style.display = 'none';
+                passwordInput.value = '';
+                page1.style.display = 'none';
+                page2.style.display = 'block';
+                managerOptions.style.display = isManager ? 'flex' : 'none';
+                managerListButton.disabled = !isManager;
+                fetchVacationData();
+            });
+
+            // 返回身份選擇頁面
+            backToIdentityButton.addEventListener('click', () => {
+                if (!confirm('是否重新選擇身份？此操作將不保留目前選擇的日期。')) {
+                    return;
+                }
+                selectedDates = [];
+                updateCalendar();
+                updateSelectedDates();
+                toggleSubmitButton();
+                page2.style.display = 'none';
+                page1.style.display = 'block';
+            });
+
+            // 送出休假日期
+            submitDatesButton.addEventListener('click', () => {
+                if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}，是否確定？`)) {
+                    return;
+                }
+                saveVacationData();
+            });
+
+            // 管理者功能顯示
+            managerListButton.addEventListener('click', () => {
+                managerActions.style.display = managerActions.style.display === 'none' ? 'block' : 'none';
+            });
+
+            // 清除所有員工的休假記錄
+            clearAllDataButton.addEventListener('click', () => {
+                if (confirm('是否確認清除本月份全體員工的指休紀錄？')) {
+                    db.collection('vacations').get().then((querySnapshot) => {
+                        querySnapshot.forEach((doc) => {
+                            doc.ref.delete();
+                        });
+                        realTimeDB.ref('vacations').set({});
+                        alert('全體員工的指休紀錄已清除。');
+                        employeesPerDay = {};
+                        updateCalendar();
+                    });
+                }
+            });
+
+            // 顯示統計
+            showStatisticsButton.addEventListener('click', () => {
+                const statistics = {};
+                db.collection('vacations').get().then((querySnapshot) => {
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if (!statistics[data.employee]) {
+                            statistics[data.employee] = [];
+                        }
+                        statistics[data.employee] = statistics[data.employee].concat(data.dates);
+                    });
+                    let statsString = '';
+                    for (const employee in statistics) {
+                        statsString += `${employee}: ${statistics[employee].join(', ')}\n`;
+                    }
+                    alert(statsString.trim());
+                });
+            });
+
+            limit2Button.addEventListener('click', () => setLimit(2));
+            limit3Button.addEventListener('click', () => setLimit(3));
+            limit4Button.addEventListener('click', () => setLimit(4));
+            limit5Button.addEventListener('click', () => setLimit(5));
+
+            function setLimit(limit) {
+                if (confirm(`此操作將清除所有員工休假紀錄，是否確定將每日休假人數限制為${limit}人？`)) {
+                    db.collection('vacations').get().then((querySnapshot) => {
+                        querySnapshot.forEach((doc) => {
+                            doc.ref.delete();
+                        });
+                        realTimeDB.ref('vacations').set({});
+                        maxEmployeesPerDay = limit;
+                        alert(`每日休假人數已限制為${limit}人`);
+                        employeesPerDay = {};
+                        updateCalendar();
+                    });
+                }
+            }
+
+            function fetchVacationData() {
+                db.collection('vacations').get().then((querySnapshot) => {
+                    employeesPerDay = {};
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        data.dates.forEach(date => {
+                            if (!employeesPerDay[date]) {
+                                employeesPerDay[date] = [];
+                            }
+                            employeesPerDay[date].push(data.employee);
+                        });
+                    });
+                    updateCalendar();
+                });
+            }
+
+            function saveVacationData() {
+                // 清除舊日期
+                clearOldDates();
+
+                // 更新新日期
+                selectedDates.forEach(day => {
                     if (!employeesPerDay[day]) {
                         employeesPerDay[day] = [];
                     }
@@ -486,21 +762,15 @@
                         // 檢查選擇的日期是否達到上限
                         selectedDates.forEach(day => {
                             if (employeesPerDay[day].length >= maxEmployeesPerDay) {
-                                realTimeDB.ref('vacations').child(day).once('value', (snapshot) => {
-                                    const employees = snapshot.val();
-                                    if (employees && employees.length >= maxEmployeesPerDay) {
-                                        // 通知其他員工並取消他們選擇的日期
-                                        realTimeDB.ref('selections').once('value', (snapshot) => {
-                                            const selections = snapshot.val();
-                                            for (const employee in selections) {
-                                                if (selections[employee].includes(day)) {
-                                                    selections[employee] = selections[employee].filter(d => d !== day);
-                                                    alert(`${day}已達休假人數上限，請重新選擇日期。`);
-                                                }
-                                            }
-                                            realTimeDB.ref('selections').set(selections);
-                                        });
+                                realTimeDB.ref('selections').once('value', (snapshot) => {
+                                    const selections = snapshot.val() || {};
+                                    for (const employee in selections) {
+                                        if (selections[employee] && selections[employee].includes(day)) {
+                                            selections[employee] = selections[employee].filter(d => d !== day);
+                                            alert(`員工 ${employee}，您選擇的 ${day} 已達休假人數上限，請重新選擇日期。`);
+                                        }
                                     }
+                                    realTimeDB.ref('selections').set(selections);
                                 });
                             }
                         });
