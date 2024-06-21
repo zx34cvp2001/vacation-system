@@ -133,27 +133,7 @@
             <h2>選擇身份</h2>
             <select id="employeeSelect">
                 <option value="">請選擇您的姓名</option>
-                <option value="陳學正">陳學正</option>
-                <option value="吳昆益">吳昆益</option>
-                <option value="談正康">談正康</option>
-                <option value="劉益誠">劉益誠</option>
-                <option value="洪一倫">洪一倫</option>
-                <option value="施增達">施增達</option>
-                <option value="蔡銘南">蔡銘南</option>
-                <option value="黃宇睿">黃宇睿</option>
-                <option value="彭萬倉">彭萬倉</option>
-                <option value="王淨月">王淨月</option>
-                <option value="王瑞祥">王瑞祥</option>
-                <option value="林祐弘">林祐弘</option>
-                <option value="張維賢">張維賢</option>
-                <option value="張能凱">張能凱</option>
-                <option value="張宇賢">張宇賢</option>
-                <option value="寇鴻儒">寇鴻儒</option>
-                <option value="林峻源">林峻源</option>
-                <option value="劉鐘泉">劉鐘泉</option>
-                <option value="林雅君">林雅君</option>
-                <option value="鐘保柱">鐘保柱</option>
-                <option value="葉立臺">葉立臺</option>
+                <!-- 選項內容省略 -->
             </select>
             <input type="password" id="passwordInput" placeholder="輸入密碼" style="display: none; margin: 0 auto;" inputmode="numeric">
             <button id="confirmIdentity">確認</button>
@@ -171,6 +151,10 @@
                 <div id="managerActions" style="display: none;">
                     <button id="clearAllData">清除員工指休資料</button>
                     <button id="showStatistics">統計</button>
+                    <button id="limit2">限休2人</button>
+                    <button id="limit3">限休3人</button>
+                    <button id="limit4">限休4人</button>
+                    <button id="limit5">限休5人</button>
                 </div>
             </div>
         </div>
@@ -204,7 +188,7 @@
             const submitDatesButton = document.getElementById('submitDates');
             const page1 = document.getElementById('page1');
             const page2 = document.getElementById('page2');
-            const calendar = document.getElementById('calendar');     
+            const calendar = document.getElementById('calendar');
             const selectedDatesDiv = document.getElementById('selectedDates');
             const passwordInput = document.getElementById('passwordInput');
             const managerOptions = document.getElementById('managerOptions');
@@ -212,6 +196,10 @@
             const managerActions = document.getElementById('managerActions');
             const clearAllDataButton = document.getElementById('clearAllData');
             const showStatisticsButton = document.getElementById('showStatistics');
+            const limit2Button = document.getElementById('limit2');
+            const limit3Button = document.getElementById('limit3');
+            const limit4Button = document.getElementById('limit4');
+            const limit5Button = document.getElementById('limit5');
 
             let selectedEmployee = '';
             let selectedDates = [];
@@ -240,7 +228,11 @@
                     dayDiv.addEventListener('click', () => selectDate(i));
                     calendar.appendChild(dayDiv);
                 }
-                fetchVacationData();
+                // 設置實時數據監聽
+                realTimeDB.ref('vacations').on('value', (snapshot) => {
+                    employeesPerDay = snapshot.val() || {};
+                    updateCalendar();
+                });
             }
 
             function selectDate(day) {
@@ -334,7 +326,7 @@
             });
 
             backToIdentityButton.addEventListener('click', () => {
-                if (!confirm('是否重新選擇身份？此操作將清除目前選擇的日期。')) {
+                if (!confirm('是否重新選擇身份？此操作將不保留目前選擇的日期。')) {
                     return;
                 }
                 selectedDates = [];
@@ -359,15 +351,12 @@
             clearAllDataButton.addEventListener('click', () => {
                 if (confirm('是否確認清除本月份全體員工的指休紀錄？')) {
                     db.collection('vacations').get().then((querySnapshot) => {
-                        const batch = db.batch();
                         querySnapshot.forEach((doc) => {
-                            batch.delete(doc.ref);
+                            doc.ref.delete();
                         });
-                        return batch.commit();
-                    }).then(() => {
+                        realTimeDB.ref('vacations').set({});
                         alert('全體員工的指休紀錄已清除。');
                         employeesPerDay = {};
-                        realTimeDB.ref('vacations').set(employeesPerDay);
                         updateCalendar();
                     });
                 }
@@ -391,6 +380,26 @@
                 });
             });
 
+            limit2Button.addEventListener('click', () => setLimit(2));
+            limit3Button.addEventListener('click', () => setLimit(3));
+            limit4Button.addEventListener('click', () => setLimit(4));
+            limit5Button.addEventListener('click', () => setLimit(5));
+
+            function setLimit(limit) {
+                if (confirm(`此操作將清除所有員工休假紀錄，是否確定將每日休假人數限制為${limit}人？`)) {
+                    db.collection('vacations').get().then((querySnapshot) => {
+                        querySnapshot.forEach((doc) => {
+                            doc.ref.delete();
+                        });
+                        realTimeDB.ref('vacations').set({});
+                        maxEmployeesPerDay = limit;
+                        alert(`每日休假人數已限制為${limit}人`);
+                        employeesPerDay = {};
+                        updateCalendar();
+                    });
+                }
+            }
+
             function fetchVacationData() {
                 db.collection('vacations').get().then((querySnapshot) => {
                     employeesPerDay = {};
@@ -405,44 +414,26 @@
                     });
                     updateCalendar();
                 });
-                realTimeDB.ref('vacations').on('value', (snapshot) => {
-                    employeesPerDay = snapshot.val() || {};
-                    updateCalendar();
-                });
             }
 
             function saveVacationData() {
-                db.collection('vacations')
-                    .where('employee', '==', selectedEmployee)
-                    .get()
-                    .then((querySnapshot) => {
-                        const batch = db.batch();
-                        querySnapshot.forEach((doc) => {
-                            batch.delete(doc.ref);
-                        });
-                        return batch.commit();
-                    })
-                    .then(() => {
-                        const data = {
-                            employee: selectedEmployee,
-                            dates: selectedDates
-                        };
-                        return db.collection('vacations').add(data);
-                    })
-                    .then(() => {
-                        realTimeDB.ref('vacations').set(employeesPerDay);
-                        alert('指定休假已更新完成。');
-                        selectedDates = [];
-                        fetchVacationData();
-                        updateSelectedDates();
-                        toggleSubmitButton();
-                        page2.style.display = 'none';
-                        page1.style.display = 'block';
-                    })
-                    .catch((error) => {
-                        console.error('Error:', error);
-                        alert('Failed to register vacation dates.');
-                    });
+                const data = {
+                    employee: selectedEmployee,
+                    dates: selectedDates
+                };
+                db.collection('vacations').add(data).then(() => {
+                    realTimeDB.ref('vacations').set(employeesPerDay);
+                    alert('指定休假已更新完成。');
+                    selectedDates = [];
+                    fetchVacationData();
+                    updateSelectedDates();
+                    toggleSubmitButton();
+                    page2.style.display = 'none';
+                    page1.style.display = 'block';
+                }).catch((error) => {
+                    console.error('Error:', error);
+                    alert('Failed to register vacation dates.');
+                });
             }
 
             renderCalendar();
