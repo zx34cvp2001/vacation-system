@@ -267,7 +267,7 @@
                         return;
                     }
                     if (employeesPerDay[day] && employeesPerDay[day].length >= maxEmployeesPerDay) {
-                        alert(`${day}已達休假人數上限`);
+                        alert(`${day}號已達休假人數上限`);
                         return;
                     }
                     selectedDates.push(day);
@@ -333,14 +333,14 @@
                         return;
                     }
                     if (passwordInput.value !== managerPassword) {
-                        alert('密碼錯誤。');
+                        alert('密碼錯了呦，哈哈哈。');
                         return;
                     }
                     isManager = true;
                 } else {
                     isManager = false;
                 }
-                if (!confirm(`您選擇的身份是 ${selectedEmployee}，是否確認？`)) {
+                if (!confirm(`您選擇的身份是 ${selectedEmployee}，是否本人？`)) {
                     return;
                 }
                 passwordInput.style.display = 'none';
@@ -367,7 +367,7 @@
 
             // 送出休假日期
             submitDatesButton.addEventListener('click', () => {
-                if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}，是否確定？`)) {
+                if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}號，是否確定？`)) {
                     return;
                 }
                 // 檢查所選日期是否達到上限人數
