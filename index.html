@@ -451,7 +451,7 @@
             function saveVacationData() {
                 // 清除舊日期
                 clearOldDates();
-                
+
                 // 更新新日期
                 selectedDates.forEach(day => {
                     if (!employeesPerDay[day]) {
@@ -482,6 +482,28 @@
                     .then(() => {
                         // 更新Realtime Database
                         realTimeDB.ref('vacations').set(employeesPerDay);
+
+                        // 檢查選擇的日期是否達到上限
+                        selectedDates.forEach(day => {
+                            if (employeesPerDay[day].length >= maxEmployeesPerDay) {
+                                realTimeDB.ref('vacations').child(day).once('value', (snapshot) => {
+                                    const employees = snapshot.val();
+                                    if (employees && employees.length >= maxEmployeesPerDay) {
+                                        // 通知其他員工並取消他們選擇的日期
+                                        realTimeDB.ref('selections').once('value', (snapshot) => {
+                                            const selections = snapshot.val();
+                                            for (const employee in selections) {
+                                                if (selections[employee].includes(day)) {
+                                                    selections[employee] = selections[employee].filter(d => d !== day);
+                                                    alert(`${day}已達休假人數上限，請重新選擇日期。`);
+                                                }
+                                            }
+                                            realTimeDB.ref('selections').set(selections);
+                                        });
+                                    }
+                                });
+                            }
+                        });
 
                         alert('指定休假已更新完成。');
                         selectedDates = [];
