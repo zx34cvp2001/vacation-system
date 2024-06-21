@@ -370,6 +370,12 @@
                 if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}，是否確定？`)) {
                     return;
                 }
+                // 檢查所選日期是否達到上限人數
+                const overLimitDays = selectedDates.filter(day => employeesPerDay[day] && employeesPerDay[day].length >= maxEmployeesPerDay);
+                if (overLimitDays.length > 0) {
+                    alert(`以下日期已達休假人數上限，請重新選擇: ${overLimitDays.join(', ')}`);
+                    return;
+                }
                 saveVacationData();
             });
 
@@ -482,22 +488,6 @@
                     .then(() => {
                         // 更新Realtime Database
                         realTimeDB.ref('vacations').set(employeesPerDay);
-
-                        // 檢查選擇的日期是否達到上限
-                        selectedDates.forEach(day => {
-                            if (employeesPerDay[day].length >= maxEmployeesPerDay) {
-                                realTimeDB.ref('selections').once('value', (snapshot) => {
-                                    const selections = snapshot.val() || {};
-                                    for (const employee in selections) {
-                                        if (selections[employee] && selections[employee].includes(day)) {
-                                            selections[employee] = selections[employee].filter(d => d !== day);
-                                            alert(`員工 ${employee}，您選擇的 ${day} 已達休假人數上限，請重新選擇日期。`);
-                                        }
-                                    }
-                                    realTimeDB.ref('selections').set(selections);
-                                });
-                            }
-                        });
 
                         alert('指定休假已更新完成。');
                         selectedDates = [];
