@@ -231,6 +231,7 @@
             const managerPassword = '6233';
             let isManager = false;
 
+            // 初始化日曆
             function renderCalendar() {
                 for (let i = 1; i <= 31; i++) {
                     const dayDiv = document.createElement('div');
@@ -255,6 +256,7 @@
                 });
             }
 
+            // 選擇日期
             function selectDate(day) {
                 const maxDays = isManager ? maxDaysManager : maxDaysEmployee;
                 if (selectedDates.includes(day)) {
@@ -275,6 +277,7 @@
                 toggleSubmitButton();
             }
 
+            // 更新日曆顯示
             function updateCalendar() {
                 const days = calendar.querySelectorAll('.day');
                 days.forEach(dayDiv => {
@@ -298,20 +301,24 @@
                 });
             }
 
+            // 更新已選擇日期顯示
             function updateSelectedDates() {
                 selectedDatesDiv.innerHTML = '已選日期: ' + selectedDates.join(', ');
             }
 
+            // 切換送出按鈕狀態
             function toggleSubmitButton() {
                 submitDatesButton.disabled = selectedDates.length < 1;
             }
 
+            // 清除舊日期
             function clearOldDates() {
                 for (const day in employeesPerDay) {
                     employeesPerDay[day] = employeesPerDay[day].filter(employee => employee !== selectedEmployee);
                 }
             }
 
+            // 確認身份
             confirmIdentityButton.addEventListener('click', () => {
                 selectedEmployee = employeeSelect.value;
                 if (!selectedEmployee) {
@@ -342,8 +349,10 @@
                 page2.style.display = 'block';
                 managerOptions.style.display = isManager ? 'flex' : 'none';
                 managerListButton.disabled = !isManager;
+                fetchVacationData();
             });
 
+            // 返回身份選擇頁面
             backToIdentityButton.addEventListener('click', () => {
                 if (!confirm('是否重新選擇身份？此操作將不保留目前選擇的日期。')) {
                     return;
@@ -356,6 +365,7 @@
                 page1.style.display = 'block';
             });
 
+            // 送出休假日期
             submitDatesButton.addEventListener('click', () => {
                 if (!confirm(`你選擇的日期為 ${selectedDates.join(', ')}，是否確定？`)) {
                     return;
@@ -363,10 +373,12 @@
                 saveVacationData();
             });
 
+            // 管理者功能顯示
             managerListButton.addEventListener('click', () => {
                 managerActions.style.display = managerActions.style.display === 'none' ? 'block' : 'none';
             });
 
+            // 清除所有員工的休假記錄
             clearAllDataButton.addEventListener('click', () => {
                 if (confirm('是否確認清除本月份全體員工的指休紀錄？')) {
                     db.collection('vacations').get().then((querySnapshot) => {
@@ -381,6 +393,7 @@
                 }
             });
 
+            // 顯示統計
             showStatisticsButton.addEventListener('click', () => {
                 const statistics = {};
                 db.collection('vacations').get().then((querySnapshot) => {
@@ -436,6 +449,7 @@
             }
 
             function saveVacationData() {
+                clearOldDates();
                 const data = {
                     employee: selectedEmployee,
                     dates: selectedDates
@@ -459,4 +473,4 @@
         });
     </script>
 </body>
-</html>
+</html> 
