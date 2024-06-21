@@ -449,13 +449,28 @@
             }
 
             function saveVacationData() {
+                // 清除舊日期
                 clearOldDates();
+                
+                // 更新新日期
+                selectedDates.forEach(day => {
+                    if (!employeesPerDay[day]) {
+                        employeesPerDay[day] = [];
+                    }
+                    employeesPerDay[day].push(selectedEmployee);
+                });
+
+                // 更新Firestore和Realtime Database
                 const data = {
                     employee: selectedEmployee,
                     dates: selectedDates
                 };
+
+                // 保存到Firestore
                 db.collection('vacations').add(data).then(() => {
+                    // 更新Realtime Database
                     realTimeDB.ref('vacations').set(employeesPerDay);
+
                     alert('指定休假已更新完成。');
                     selectedDates = [];
                     fetchVacationData();
@@ -473,4 +488,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
