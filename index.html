@@ -460,28 +460,41 @@
                     employeesPerDay[day].push(selectedEmployee);
                 });
 
-                // 更新Firestore和Realtime Database
-                const data = {
-                    employee: selectedEmployee,
-                    dates: selectedDates
-                };
+                // 刪除Firestore中的舊數據
+                db.collection('vacations')
+                    .where('employee', '==', selectedEmployee)
+                    .get()
+                    .then((querySnapshot) => {
+                        const batch = db.batch();
+                        querySnapshot.forEach((doc) => {
+                            batch.delete(doc.ref);
+                        });
+                        return batch.commit();
+                    })
+                    .then(() => {
+                        // 保存新的數據到Firestore
+                        const data = {
+                            employee: selectedEmployee,
+                            dates: selectedDates
+                        };
+                        return db.collection('vacations').add(data);
+                    })
+                    .then(() => {
+                        // 更新Realtime Database
+                        realTimeDB.ref('vacations').set(employeesPerDay);
 
-                // 保存到Firestore
-                db.collection('vacations').add(data).then(() => {
-                    // 更新Realtime Database
-                    realTimeDB.ref('vacations').set(employeesPerDay);
-
-                    alert('指定休假已更新完成。');
-                    selectedDates = [];
-                    fetchVacationData();
-                    updateSelectedDates();
-                    toggleSubmitButton();
-                    page2.style.display = 'none';
-                    page1.style.display = 'block';
-                }).catch((error) => {
-                    console.error('Error:', error);
-                    alert('Failed to register vacation dates.');
-                });
+                        alert('指定休假已更新完成。');
+                        selectedDates = [];
+                        fetchVacationData();
+                        updateSelectedDates();
+                        toggleSubmitButton();
+                        page2.style.display = 'none';
+                        page1.style.display = 'block';
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                        alert('Failed to register vacation dates.');
+                    });
             }
 
             renderCalendar();
